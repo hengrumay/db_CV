@@ -1,0 +1,9 @@
+## this simple example is pointing to workspace filesystem 
+# --> UC volumes under project.db_name.vol_name path to tie in all assets
+
+train: train/images
+val: val/images
+test: test/images
+
+names: ['circle']
+    
