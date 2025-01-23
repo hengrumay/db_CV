@@ -13,7 +13,7 @@
 This solution empowers users to efficiently execute computer vision projects using the YOLO framework on Databricks. It offers scalable configurations, streamlines the machine learning lifecycle, and provides end-to-end experiment tracking with MLflow.
 
 ## Key Features
-- **Effortless Setup**: Minimal setup effort with seamless integration into MLflow and Unity Catalog for well-organized machine learning lifecycle management.
+- **Efficient Setup**: Minimal setup effort with seamless integration into MLflow and Unity Catalog for well-organized machine learning lifecycle management.
 - **Scalable Configurations**: Single-node/single-GPU to multi-node/multi-GPU setups.
 - **Data Augmentation and Fine-Tuning**: Includes reusable code for data augmentation and model fine-tuning, enabling flexibility for diverse use cases.
 - **Integration with MLflow**: Experiment tracking and logging of all metrics and parameters.

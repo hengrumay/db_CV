@@ -147,7 +147,7 @@ print("Shape of sample_mask: ", sample_mask.shape)
 sample_image_t1 = nib.load(DATASET_PATH + "/BraTS2021_00495_t1.nii").get_fdata()
 
 
-sample_image_t1c = nib.load(DATASET_PATH + "/BraTS2021_00495_t1ce.nii").get_fdata()
+sample_image_t1ce = nib.load(DATASET_PATH + "/BraTS2021_00495_t1ce.nii").get_fdata()
 
 
 sample_image_t2 = nib.load(DATASET_PATH + "/BraTS2021_00495_t2.nii.gz").get_fdata()
@@ -170,8 +170,8 @@ plt.title("Image t1")
 plt.subplot(233)
 # plt.imshow(sample_image_t1ce[:,:,n_slice], cmap='gray')
 # plt.title("Image t1ce"
-plt.imshow(sample_image_t1c[:,:,n_slice], cmap='gray')
-plt.title("Image t1c")
+plt.imshow(sample_image_t1ce[:,:,n_slice], cmap='gray')
+plt.title("Image t1ce")
  
 plt.subplot(234)
 plt.imshow(sample_image_t2[:,:,n_slice], cmap = 'gray')
