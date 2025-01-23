@@ -472,14 +472,6 @@ images, masks = next(iter(train_loader))
 print(f"Train Image batch shape: {images.shape}")
 print(f"Train Mask batch shape: {masks.shape}")
 
-train_loader = DataLoader(train_dataset, batch_size=5, shuffle=True, num_workers=4)
-val_loader = DataLoader(val_dataset, batch_size=5, shuffle=False, num_workers=4)
-
-# Sanity Check
-images, masks = next(iter(train_loader))
-print(f"Train Image batch shape: {images.shape}")
-print(f"Train Mask batch shape: {masks.shape}")
-
 # Train Image batch shape: torch.Size([5, 3, 128, 128, 128])
 # Train Mask batch shape: torch.Size([5, 4, 128, 128, 128])
 
