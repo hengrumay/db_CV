@@ -143,16 +143,15 @@ print("Shape of sample_mask: ", sample_mask.shape)
 
 # COMMAND ----------
 
+# DBTITLE 1,load other t* scans for subj
 sample_image_t1 = nib.load(DATASET_PATH + "/BraTS2021_00495_t1.nii").get_fdata()
-sample_image_t1 = sample_image_t1.astype(np.uint8)  # values between 0 and 255
 
 
 sample_image_t1c = nib.load(DATASET_PATH + "/BraTS2021_00495_t1ce.nii").get_fdata()
-sample_image_t1c = sample_image_t1c.astype(np.uint8)  # values between 0 and 255
 
 
 sample_image_t2 = nib.load(DATASET_PATH + "/BraTS2021_00495_t2.nii.gz").get_fdata()
-sample_image_t2 = sample_image_t2.astype(np.uint8)  # values between 0 and 255
+
 
 # COMMAND ----------
 
