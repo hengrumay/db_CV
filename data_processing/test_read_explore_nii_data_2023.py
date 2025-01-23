@@ -440,6 +440,7 @@ class BraTSDataset(Dataset):
 
 # COMMAND ----------
 
+# DBTITLE 1,LOAD data into dataloader
 train_img_dir = f"{UCV_folderpath}BraTS2023_Preprocessed/input_data_128/train/images"
 train_mask_dir = f"{UCV_folderpath}BraTS2023_Preprocessed/input_data_128/train/masks"
  
@@ -462,6 +463,7 @@ print("Total Val Samples: ", len(val_dataset))
 
 # COMMAND ----------
 
+# DBTITLE 1,Check sizes
 train_loader = DataLoader(train_dataset, batch_size=5, shuffle=True, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=5, shuffle=False, num_workers=4)
 
@@ -483,6 +485,7 @@ print(f"Train Mask batch shape: {masks.shape}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Viz
 def visualize_slices(images, masks, num_slices=20):
     batch_size = images.shape[0]
  
