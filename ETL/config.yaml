@@ -1,0 +1,15 @@
+# SAMPLE CONFIG FILE - FILL OUT WITH YOUR VARIABLES
+
+environment_variables:
+  CUDA_LAUNCH_BLOCKING: "1"
+  DATABRICKS_HOST: "host"
+  DATABRICKS_WORKSPACE_ID: "workspaceID"
+  DATABRICKS_TOKEN: 
+    scope: "scope"
+    key: "pat"
+  DEBUG: 'False'
+
+unity_catalog: 
+  catalog: "main"
+  schema: "computer_vision"
+  volume: "yolo_data"
