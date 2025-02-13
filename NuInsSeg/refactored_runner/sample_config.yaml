@@ -1,0 +1,13 @@
+databricks_vars:
+  databricks_host: https://{host}.azuredatabricks.net/
+  databricks_client_id: xx
+  databricks_client_secret_scope: xx
+  databricks_client_secret_key: xx
+  databricks_tenant_id: xx 
+  databricks_workspace_id: xx 
+  auth_type: pat #pat or sp
+  token_secret_scope: secret_scope
+  token_pat_key: pat
+  catalog_name: catalog_name
+  schema_name: schema_name
+  table_name: nuclei_instance
