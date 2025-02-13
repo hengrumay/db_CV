@@ -119,8 +119,12 @@ dbutils.library.restartPython()
 import yaml
 
 # Load the configuration from the config.yaml file
-with open('config.yaml', 'r') as file:
-    config = yaml.safe_load(file)
+try:
+    with open('config.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+except Exception as e: 
+    raise Exception(f"Error loading config.yaml: {e}. \n Did you update the sample_config.yaml and rename to config.yaml?") 
+    
 
 # Extract the DRIFT_DETECTION_VARS
 databricks_vars = config.get('databricks_vars', {})
@@ -139,7 +143,7 @@ token_pat_key = databricks_vars['token_pat_key']
 catalog_name = databricks_vars['catalog_name']
 schema_name = databricks_vars['schema_name']
 table_name = databricks_vars['table_name']
-project_location = f"/Volumes/{catalog_name}/{schema_name}/{table_name}_vol/"
+project_location = f"/Volumes/{catalog_name}/{schema_name}/{table_name}_vol"
 
 # COMMAND ----------
 
@@ -295,6 +299,7 @@ os.makedirs(f'{project_location}/training_runs/', exist_ok=True)
 os.makedirs(f'{project_location}/data/', exist_ok=True)
 os.makedirs(f'{project_location}/raw_model/', exist_ok=True)
 os.makedirs(f'{project_location}/training_results/', exist_ok=True)
+os.makedirs(f'{project_location}/artifacts/', exist_ok=True)
 
 # for cache related to ultralytics
 os.environ['ULTRALYTICS_CACHE_DIR'] = f'{project_location}/raw_model/'
@@ -495,23 +500,11 @@ if __name__ == '__main__':
 
 # COMMAND ----------
 
-# MAGIC %cat {project_location}/output.txt
-
-# COMMAND ----------
-
-ls -ahlrt /tmp/
-
-# COMMAND ----------
-
-ls -ahlrt /dbfs/tmp/
-
-# COMMAND ----------
-
-cat /dbfs/tmp/output.txt
-
-# COMMAND ----------
-
-ls -ahlrt {project_location}
+# MAGIC %md
+# MAGIC `ls -ahlrt /tmp/`    
+# MAGIC `ls -ahlrt /dbfs/tmp/`   
+# MAGIC `ls -ahlrt {project_location}`  
+# MAGIC   
 
 # COMMAND ----------
 
@@ -519,11 +512,7 @@ ls -ahlrt {project_location}
 
 # COMMAND ----------
 
-# MAGIC %cat {project_location}/output_0.txt
-
-# COMMAND ----------
-
-# MAGIC %cat {project_location}/output_1.txt
+# MAGIC %cat /dbfs/tmp/output.txt
 
 # COMMAND ----------
 
@@ -531,11 +520,7 @@ torch.cuda.is_available()
 
 # COMMAND ----------
 
-os.getenv('CUDA_VISIBLE_DEVICES')
-
-# COMMAND ----------
-
-# DBTITLE 1,driver only
+# DBTITLE 0,driver only
 # MAGIC %sh
 # MAGIC nvidia-smi  -L
 
@@ -551,14 +536,15 @@ os.getenv('CUDA_VISIBLE_DEVICES')
 
 # COMMAND ----------
 
-# DBTITLE 1,setup tensorboard before running the below distributed training
-# MAGIC %load_ext tensorboard
-# MAGIC # This sets up our tensorboard settings
-# MAGIC # /tmp/training_results/train
-# MAGIC # tensorboard --logdir /tmp/training_results/train
-# MAGIC experiment_log_dir = f'{tmp_project_location}/train'
-# MAGIC %tensorboard --logdir $experiment_log_dir
-# MAGIC # This starts Tensorboard
+# DBTITLE 1,Setup tensorboard before running the below distributed training
+# This sets up our tensorboard settings
+%load_ext tensorboard
+# /tmp/training_results/train
+# tensorboard --logdir /tmp/training_results/train
+
+# This starts Tensorboard
+experiment_log_dir = f'{tmp_project_location}/train'
+%tensorboard --logdir $experiment_log_dir
 
 # COMMAND ----------
 
@@ -567,20 +553,25 @@ os.getenv('CUDA_VISIBLE_DEVICES')
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Need to fix experiment path - issues with git repo 
 
-workspace_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().get("user").get()
-workspace_path = f"/Users/{workspace_path}/"
-experiment_name = workspace_path + "MedCellTypes_Instance_Segmentation_Experiment_Managed"
-print(f"Setting experiment name to be {experiment_name}")
+# COMMAND ----------
+
+# user_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().get("user").get()
+# workspace_path = f"/Workspace/Users/{user_path}"
+# dbutils.fs.mkdirs(f"{workspace_path}/MedCellTypes")
+
+
+# experiment_name = f"{workspace_path}/MedCellTypes/MedCellTypes_Instance_Segmentation_Experiment_Managed"
+# print(f"Setting experiment name to be {experiment_name}")
 
 
 # COMMAND ----------
 
-os.getcwd()
+# mlflow.create_experiment('/Workspace/Users/will.smith@databricks.com/MedCellTypes_Instance_Segmentation_Experiment_Managed')
 
-# COMMAND ----------
-
-mlflow.get_experiment_by_name(experiment_name)
+# RestException: INVALID_PARAMETER_VALUE: MLflow experiment creation is not permitted in a Git folder (repo). Use the default experiment for a notebook in a Git folder (repo) or create an MLflow experiment in the workspace.
 
 # COMMAND ----------
 
@@ -591,34 +582,29 @@ import mlflow
 mlflow.set_tracking_uri("databricks")
 mlflow.set_registry_uri("databricks-uc")
 mlflow.end_run()
-#
-# experiment_name = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get().rsplit('/', 1)[0] + "/MedCellTypes_Instance_Segmentation_Experiment_Managed"
-# print(f"Setting experiment name to be {experiment_name}")
-workspace_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().get("user").get()
-workspace_path = f"/Users/{workspace_path}/"
-experiment_name = workspace_path + "MedCellTypes_Instance_Segmentation_Experiment_Managed"
-print(f"Setting experiment name to be {experiment_name}")
 
 #: Use UC Volume path to logging MLflow experiment instead of MLflow-managed artifact storage: dbfs:/databricks/mlflow-tracking/<experiment-id>.
-# project_location = '/Volumes/yyang/computer_vision/Nuclei_Instance/'
-ARTIFACT_PATH = f"dbfs:{project_location}artifact"
+ARTIFACT_PATH = f"dbfs:{project_location}/artifacts/"
 print(f"Creating experiment ARTIFACT_PATH to be {ARTIFACT_PATH}")
+
+# #TODO change from hardcoded experiment: 
+experiment_name = f"/Workspace/Users/will.smith@databricks.com/MedCellTypes/MedCellTypes_Instance_Segmentation_Experiment_Managed"
+
 if mlflow.get_experiment_by_name(experiment_name) is None:
     mlflow.create_experiment(name=experiment_name, artifact_location=ARTIFACT_PATH)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### SingleNode-MultiGPU version
+# MAGIC ### Single Node Multi-GPU training
 
 # COMMAND ----------
 
-# DBTITLE 1,SingleNode-MultiGPU version
+# DBTITLE 1,Single Node Multi-GPU training
 from pyspark.ml.torch.distributor import TorchDistributor
 
 settings.update({"mlflow":True}) # if you do want to autolog.
 mlflow.autolog(disable = False)
-
 
 def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
 
@@ -634,15 +620,16 @@ def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
 
     ##### Setting up MLflow ####
     # We need to do this so that different processes that will be able to find mlflow
-    os.environ['DATABRICKS_HOST'] = db_host # pending replace with db vault secret
-    os.environ['DATABRICKS_TOKEN'] = db_token # pending replace with db vault secret 
+    os.environ['DATABRICKS_HOST'] = databricks_host # pending replace with db vault secret
+    # os.environ['DATABRICKS_TOKEN'] =  # pending replace with db vault secret 
     os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING'] = "true"
     os.environ['MLFLOW_EXPERIMENT_NAME'] = experiment_name
-    os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id  # Set the workspace ID
+    os.environ['DATABRICKS_WORKSPACE_ID'] = databricks_workspace_id  # Set the workspace ID
+
     # We set the experiment details here
     experiment = mlflow.set_experiment(experiment_name)
     
-    #
+    # Outer run id for recording system metrics only
     with mlflow.start_run(run_id=active_run_id) as run:
         model = YOLO(f"{project_location}/raw_model/yolov8n.pt")
         model.train(
@@ -657,14 +644,6 @@ def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
             perspective=0.001,
             degrees=.45
         )
-
-    # active_run_id = mlflow.last_active_run().info.run_id
-    # print("For YOLO autologging, active_run_id is: ", active_run_id)
-
-    # # after training is done.
-    # if not dist.is_initialized():
-    #   # import torch.distributed as dist
-    #   dist.init_process_group("nccl")
 
     local_rank = int(os.environ["LOCAL_RANK"])
     global_rank = int(os.environ["RANK"])
@@ -684,7 +663,7 @@ def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
         else:
             print("No runs found in the experiment.")
 
-
+        # Inner run id for auto-logging and manually logging other artifacts.
         with mlflow.start_run(run_id=latest_run_id) as run:
             mlflow.log_artifact(yaml_path, "input_data_yaml")
             mlflow.log_params({"rank":global_rank})
@@ -704,32 +683,23 @@ def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
 
 if __name__ == "__main__":
 
-    #: use this experiment_name
+    # use this experiment_name
     mlflow.set_experiment(experiment_name)
     experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
+
     # Reset MLFLOW_RUN_ID, so we dont bump into the wrong one.
     if 'MLFLOW_RUN_ID' in os.environ:
         del os.environ['MLFLOW_RUN_ID']
 
-    #: setting global env
-    # Set Databricks workspace URL and token
-    os.environ['DATABRICKS_HOST'] = db_host = 'https://adb-984752964297111.11.azuredatabricks.net'
-    os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id = '984752964297111'
-    os.environ['DATABRICKS_TOKEN'] = db_token = dbutils.secrets.get(scope="yyang_secret_scope", key="pat")
+    # setting global env
+    os.environ['DATABRICKS_HOST'] = databricks_host
+    os.environ['DATABRICKS_WORKSPACE_ID'] = databricks_workspace_id
+    os.environ['DATABRICKS_TOKEN'] = dbutils.secrets.get(scope=token_secret_scope, key=token_pat_key)
 
-    print(os.environ['DATABRICKS_HOST'])
-    print(os.environ['DATABRICKS_WORKSPACE_ID'])
-    print(os.environ['DATABRICKS_TOKEN']) # anything from vault would be redacted print.
-    #  
     os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING'] = "true"
-    print(f"MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING set to {os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING']}")
     os.environ['MLFLOW_EXPERIMENT_NAME'] = experiment_name
-    print(f"MLFLOW_EXPERIMENT_NAME set to {os.environ['MLFLOW_EXPERIMENT_NAME']}")
-    os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id  # Set the workspace ID
-    print(f"DATABRICKS_WORKSPACE_ID set to {os.environ['DATABRICKS_WORKSPACE_ID']}")
 
-
-    #: caculate # of GPUs
+    # calculate # of GPUs
     num_gpus = torch.cuda.device_count()
     device_list = list(range(num_gpus))
     print("num_gpus:", num_gpus)
@@ -741,186 +711,47 @@ if __name__ == "__main__":
         active_run_id = mlflow.last_active_run().info.run_id
         active_run_name = mlflow.last_active_run().info.run_name
 
-        print("For master triggering run, active_run_id is: ", active_run_id)
-        print("For master triggering run, active_run_name is: ", active_run_name)
-        print(f"For master triggering run, active_run_id is: '{active_run_id}' and active_run_name is: '{active_run_name}'.")
+        print("For parent triggering run, active_run_id is: ", active_run_id)
+        print("For parent triggering run, active_run_name is: ", active_run_name)
+        print(f"For parent triggering run, active_run_id is: '{active_run_id}' and active_run_name is: '{active_run_name}'.")
         print(f"All worker runs will be logged into the same run id '{active_run_id}' and name '{active_run_name}'.")
 
         distributor = TorchDistributor(num_processes=num_gpus, local_mode=True, use_gpu=True)      
         distributor.run(train_fn, device_list = device_list, yaml_path = yaml_path, active_run_id = active_run_id)
 
+# COMMAND ----------
 
-# Best Practice You Are! Previously we have 2 runs, one for master and the other for all workers.
-# 1. master run id for recording system metrics only
-# 2. Inner run id for auto-logging and manually logging other artifacts.
-
-# Now I have changed the code to merge outter run and inner run to be the same run id. less confusion.
+mlflow.set_experiment("/Users/will.smith@databricks.com/MedCellTypes/MedCellTypes_Instance_Segmentation_Experiment_Managed")
 
 # COMMAND ----------
 
-# DBTITLE 1,With Default PyTorch Flavor SingleNode-MultiGPU version
-# from pyspark.ml.torch.distributor import TorchDistributor
+local_rank = int(os.environ["LOCAL_RANK"])
+global_rank = int(os.environ["RANK"])
 
-# settings.update({"mlflow":True}) # if you do want to autolog.
-# mlflow.autolog(disable = False)
+# calculate # of GPUs
+num_gpus = torch.cuda.device_count()
+device_list = list(range(num_gpus))
+print("num_gpus:", num_gpus)
+print("device_list:", device_list)
 
-
-# def train_fn(device_list = [0,1,2,3], yaml_path = None, active_run_id = None):
-
-#     from ultralytics import YOLO
-#     import torch
-#     import mlflow
-#     import torch.distributed as dist
-#     from ultralytics import settings
-#     from mlflow.types.schema import Schema, ColSpec
-#     from mlflow.models.signature import ModelSignature
-
-#     ############################
-
-#     ##### Setting up MLflow ####
-#     # We need to do this so that different processes that will be able to find mlflow
-#     os.environ['DATABRICKS_HOST'] = db_host # pending replace with db vault secret
-#     os.environ['DATABRICKS_TOKEN'] = db_token # pending replace with db vault secret 
-#     os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING'] = "true"
-#     os.environ['MLFLOW_EXPERIMENT_NAME'] = experiment_name
-#     os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id  # Set the workspace ID
-#     # We set the experiment details here
-#     experiment = mlflow.set_experiment(experiment_name)
-    
-#     #
-#     with mlflow.start_run(run_id=active_run_id) as run:
-#         model = YOLO(f"{project_location}/raw_model/yolov8n.pt")
-#         model.train(
-#             batch=8,
-#             device=device_list,
-#             data=yaml_path, # put your .yaml file path here.
-#             epochs=3,
-#             project=f'{tmp_project_location}',
-#             exist_ok=True,
-#             fliplr=1,
-#             flipud=1,
-#             perspective=0.001,
-#             degrees=.45
-#         )
-
-#     # active_run_id = mlflow.last_active_run().info.run_id
-#     # print("For YOLO autologging, active_run_id is: ", active_run_id)
-
-#     # # after training is done.
-#     # if not dist.is_initialized():
-#     #   # import torch.distributed as dist
-#     #   dist.init_process_group("nccl")
-
-#     local_rank = int(os.environ["LOCAL_RANK"])
-#     global_rank = int(os.environ["RANK"])
-    
-#     if global_rank == 0:
-
-#         active_run_id = mlflow.last_active_run().info.run_id
-#         print("For YOLO autologging, active_run_id is: ", active_run_id)
-
-#         # Get the list of runs in the experiment
-#         runs = mlflow.search_runs(experiment_names=[experiment_name], order_by=["start_time DESC"], max_results=1)
-
-#         # Extract the latest run_id
-#         if not runs.empty:
-#             latest_run_id = runs.iloc[0].run_id
-#             print(f"Latest run_id: {latest_run_id}")
-#         else:
-#             print("No runs found in the experiment.")
-
-
-#         with mlflow.start_run(run_id=latest_run_id) as run:
-#             mlflow.log_artifact(yaml_path, "input_data_yaml")
-#             mlflow.log_params({"rank":global_rank})
-#             mlflow.pytorch.log_model(model.trainer.best, "model", signature=signature)
-#             # mlflow.pytorch.log_model(YOLO(str(model.trainer.best)), "model", signature=signature)
-
-#             # yolo_wrapper = YOLOC(model.trainer.best)
-#             # mlflow.pyfunc.log_model(
-#             #     artifact_path="model",
-#             #     artifacts={'model_path': str(model.trainer.save_dir), "best_point": str(model.trainer.best)},
-#             #     python_model=yolo_wrapper,
-#             #     signature=signature)
-
-#     # clean up
-#     if dist.is_initialized():
-#         dist.destroy_process_group()
-
-#     return "finished" # can return any picklable object
-
-
-# if __name__ == "__main__":
-
-#     #: use this experiment_name
-#     mlflow.set_experiment(experiment_name)
+# use this experiment_name
+# if global_rank == 0:
+#     mlflow.set_experiment("MedCellTypes_Instance_Segmentation_Experiment_Managed")
 #     experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
-#     # Reset MLFLOW_RUN_ID, so we dont bump into the wrong one.
-#     if 'MLFLOW_RUN_ID' in os.environ:
-#         del os.environ['MLFLOW_RUN_ID']
 
-#     #: setting global env
-#     # Set Databricks workspace URL and token
-#     os.environ['DATABRICKS_HOST'] = db_host = 'https://adb-984752964297111.11.azuredatabricks.net'
-#     os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id = '984752964297111'
-#     os.environ['DATABRICKS_TOKEN'] = db_token = dbutils.secrets.get(scope="yyang_secret_scope", key="pat")
-
-#     print(os.environ['DATABRICKS_HOST'])
-#     print(os.environ['DATABRICKS_WORKSPACE_ID'])
-#     print(os.environ['DATABRICKS_TOKEN']) # anything from vault would be redacted print.
-#     #  
-#     os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING'] = "true"
-#     print(f"MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING set to {os.environ['MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING']}")
-#     os.environ['MLFLOW_EXPERIMENT_NAME'] = experiment_name
-#     print(f"MLFLOW_EXPERIMENT_NAME set to {os.environ['MLFLOW_EXPERIMENT_NAME']}")
-#     os.environ['DATABRICKS_WORKSPACE_ID'] = db_wksp_id  # Set the workspace ID
-#     print(f"DATABRICKS_WORKSPACE_ID set to {os.environ['DATABRICKS_WORKSPACE_ID']}")
-
-
-#     #: caculate # of GPUs
-#     num_gpus = torch.cuda.device_count()
-#     device_list = list(range(num_gpus))
-#     print("num_gpus:", num_gpus)
-#     print("device_list:", device_list)
-
-#     yaml_path = yaml_path # reflect your dataset yolo format .yaml path.
-
-#     with mlflow.start_run(experiment_id=experiment_id) as run:
-#         active_run_id = mlflow.last_active_run().info.run_id
-#         active_run_name = mlflow.last_active_run().info.run_name
-
-#         print("For master triggering run, active_run_id is: ", active_run_id)
-#         print("For master triggering run, active_run_name is: ", active_run_name)
-#         print(f"For master triggering run, active_run_id is: '{active_run_id}' and active_run_name is: '{active_run_name}'.")
-#         print(f"All worker runs will be logged into the same run id '{active_run_id}' and name '{active_run_name}'.")
-
-#         distributor = TorchDistributor(num_processes=num_gpus, local_mode=True, use_gpu=True)      
-#         distributor.run(train_fn, device_list = device_list, yaml_path = yaml_path, active_run_id = active_run_id)
-
-
-# # Best Practice You Are! Previously we have 2 runs, one for master and the other for all workers.
-# # 1. master run id for recording system metrics only
-# # 2. Inner run id for auto-logging and manually logging other artifacts.
-
-# # Now I have changed the code to merge outter run and inner run to be the same run id. less confusion.
-
-# COMMAND ----------
-
-#: use this experiment_name
-mlflow.set_experiment(experiment_name)
-experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
 # Reset MLFLOW_RUN_ID, so we dont bump into the wrong one.
 if 'MLFLOW_RUN_ID' in os.environ:
     del os.environ['MLFLOW_RUN_ID']
 
 # after training is done.
-if not dist.is_initialized():
-  # import torch.distributed as dist
-  dist.init_process_group("nccl")
+# if not dist.is_initialized():
+#   dist.init_process_group("nccl")
+
 model = YOLO(f"{project_location}/raw_model/yolov8n.pt")
+
 model.train(
     batch=8,
-    device=device_list,
+    device=0,
     data=yaml_path, # put your .yaml file path here.
     epochs=3,
     project=f'{tmp_project_location}',
@@ -933,18 +764,12 @@ model.train(
 
 # clean up
 if dist.is_initialized():
-    dist.destroy_process_group()
+  dist.destroy_process_group()
 
 # COMMAND ----------
 
-#  mlflow.pytorch.log_model(model.trainer.best, "model", signature=signature) # this will fail
-mlflow.pytorch.log_model(YOLO(str(model.trainer.best)), "model", signature=signature) # this succeeded
-
-# COMMAND ----------
-
+# DBTITLE 1,Log model and params before ending the run
+mlflow.pytorch.log_model(YOLO(str(model.trainer.best)), "model", signature=signature)
 mlflow.log_artifact(yaml_path, "input_data_yaml")
 mlflow.log_params({"rank":0})
-
-# COMMAND ----------
-
 mlflow.end_run()
