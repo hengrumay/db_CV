@@ -1,0 +1,3 @@
+opencv-python==4.10.0.84
+ray==2.39.0
+git+https://github.com/BlitzBricksterYY-db/ultralytics.git@main
